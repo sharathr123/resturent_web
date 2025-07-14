@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a full-stack restaurant management system built with Node.js/Express backend and React/TypeScript frontend. The application features online ordering, table reservations, real-time chat, and user authentication. It uses a monorepo structure with shared TypeScript schemas and modern web technologies.
+This is a full-stack large-scale chat application built with Node.js/Express backend and React/TypeScript frontend, originally migrated from a restaurant management system. The application is designed to handle 1M+ users with PostgreSQL database optimization, real-time messaging, user connections, and comprehensive chat features. It uses a monorepo structure with shared TypeScript schemas and modern web technologies.
 
 ## User Preferences
 
