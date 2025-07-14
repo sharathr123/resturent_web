@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, ArrowLeft, CreditCard } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'wouter';
 import Button from '../components/ui/Button';
 import CartItem from '../components/cart/CartItem';
 import { formatPrice } from '../lib/utils';
@@ -13,7 +13,7 @@ import toast from 'react-hot-toast';
 const Cart: React.FC = () => {
   const { state: cartState, clearCart } = useCart();
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const [location, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
 
   const subtotal = cartState.total;
@@ -24,7 +24,7 @@ const Cart: React.FC = () => {
   const handleCheckout = async () => {
     if (!user) {
       toast.error('Please login to proceed with checkout');
-      navigate('/login');
+      setLocation('/login');
       return;
     }
 
@@ -52,7 +52,7 @@ const Cart: React.FC = () => {
       if (result.success) {
         clearCart();
         toast.success('Order placed successfully!');
-        navigate('/');
+        setLocation('/');
       } else {
         toast.error(result.error || 'Failed to place order');
       }

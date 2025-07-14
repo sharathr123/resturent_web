@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'wouter';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import toast from 'react-hot-toast';
@@ -27,7 +27,7 @@ const RegisterForm: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { register: registerUser } = useAuth();
-  const navigate = useNavigate();
+  const [location, setLocation] = useLocation();
 
   const {
     register,
@@ -43,7 +43,7 @@ const RegisterForm: React.FC = () => {
       const result = await registerUser(data.email, data.password, data.name);
       if (result.success) {
         toast.success('Registration successful!');
-        navigate('/');
+        setLocation('/');
       } else {
         toast.error(result.error || 'Registration failed');
       }

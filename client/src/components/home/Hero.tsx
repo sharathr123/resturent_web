@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ChefHat, Star, Clock } from 'lucide-react';
 import Button from '../ui/Button';
-import { Link } from 'react-router-dom';
+import { Link } from 'wouter';
 
 const Hero: React.FC = () => {
   return (

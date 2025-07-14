@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, X } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
-import { Link } from 'react-router-dom';
+import { Link } from 'wouter';
 import Button from './Button';
 import Badge from './Badge';
 import { formatPrice } from '../../lib/utils';

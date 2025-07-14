@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Menu, X, ShoppingCart, User, LogOut, Settings } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'wouter';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
 import { getUserDetails } from '../../service/asyncstorage';

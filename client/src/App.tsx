@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Router, Route, Switch } from 'wouter';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
@@ -23,16 +23,16 @@ function App() {
       <CartProvider>
         <Router>
           <Layout>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/menu" element={<Menu />} />
-              <Route path="/reservations" element={<Reservations />} />
-              <Route path="/chat" element={<Chat />} />
-              <Route path="/orders" element={<Orders />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/cart" element={<Cart />} />
-            </Routes>
+            <Switch>
+              <Route path="/" component={Home} />
+              <Route path="/menu" component={Menu} />
+              <Route path="/reservations" component={Reservations} />
+              <Route path="/chat" component={Chat} />
+              <Route path="/orders" component={Orders} />
+              <Route path="/login" component={Login} />
+              <Route path="/register" component={Register} />
+              <Route path="/cart" component={Cart} />
+            </Switch>
           </Layout>
           <Toaster position="top-right" />
         </Router>

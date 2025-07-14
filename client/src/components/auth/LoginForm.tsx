@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'wouter';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import toast from 'react-hot-toast';
@@ -21,7 +21,7 @@ const LoginForm: React.FC = () => {
   const [formData, setFormData] = useState<LoginFormData>({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
+  const [location, setLocation] = useLocation();
 
   const handleLogin = async () => {
     if (!formData.email || !formData.password) {
@@ -35,7 +35,7 @@ const LoginForm: React.FC = () => {
       setUserDetails(response.data);
       socket.connect(response.token);
       toast.success('Login successful');
-      navigate('/');
+      setLocation('/');
     } catch (error) {
       const errorMessage = handleApiError(error);
       toast.error(errorMessage);

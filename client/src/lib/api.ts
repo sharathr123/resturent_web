@@ -11,7 +11,7 @@ import {
 } from "../types";
 
 class ApiClient {
-  private baseUrl = "http://localhost:5002/api";
+  private baseUrl = "/api";
 
   private async request<T>(
     endpoint: string,

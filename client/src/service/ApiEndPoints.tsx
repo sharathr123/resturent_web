@@ -1,4 +1,4 @@
-export const ENV_URL = 'http://localhost:5002/api';
+export const ENV_URL = '/api';
 export const REGEX_URL = '';
 export const BASE_URL = ENV_URL + REGEX_URL;
 export const LogoutLink = '';
