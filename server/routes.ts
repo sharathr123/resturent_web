@@ -4,7 +4,7 @@ import { Server as SocketServer } from "socket.io";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import cors from "cors";
-import { storage } from "./storage";
+import { getStorage } from "./storage-selector";
 import { 
   insertUserSchema, 
   insertOrderSchema, 
@@ -29,7 +29,7 @@ const authenticateToken = async (req: any, res: any, next: any) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const user = await storage.getUser(decoded.userId);
+    const user = await getStorage().getUser(decoded.userId);
     if (!user) {
       return res.status(401).json({ success: false, error: 'User not found' });
     }
@@ -53,7 +53,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { email, password, name } = req.body;
       
       // Check if user already exists
-      const existingUser = await storage.getUserByEmail(email);
+      const existingUser = await getStorage().getUserByEmail(email);
       if (existingUser) {
         return res.status(400).json({ success: false, error: 'User already exists' });
       }
@@ -69,7 +69,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: 'customer'
       });
 
-      const user = await storage.createUser(userData);
+      const user = await getStorage().createUser(userData);
       
       // Generate token
       const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '24h' });
@@ -94,7 +94,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { email, password } = req.body;
       
       // Find user
-      const user = await storage.getUserByEmail(email);
+      const user = await getStorage().getUserByEmail(email);
       if (!user) {
         return res.status(400).json({ success: false, error: 'Invalid credentials' });
       }
@@ -135,7 +135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Categories routes
   app.get('/api/categories', async (req, res) => {
     try {
-      const categories = await storage.getCategories();
+      const categories = await getStorage().getCategories();
       res.json({ success: true, data: categories });
     } catch (error) {
       res.status(500).json({ success: false, error: 'Failed to fetch categories' });
@@ -145,7 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/categories', authenticateToken, async (req: any, res) => {
     try {
       const categoryData = insertCategorySchema.parse(req.body);
-      const category = await storage.createCategory(categoryData);
+      const category = await getStorage().createCategory(categoryData);
       res.json({ success: true, data: category });
     } catch (error) {
       res.status(400).json({ success: false, error: 'Failed to create category' });
@@ -156,7 +156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/menu-items', async (req, res) => {
     try {
       const categoryId = req.query.category ? parseInt(req.query.category as string) : undefined;
-      const menuItems = await storage.getMenuItems(categoryId);
+      const menuItems = await getStorage().getMenuItems(categoryId);
       res.json({ success: true, data: menuItems });
     } catch (error) {
       res.status(500).json({ success: false, error: 'Failed to fetch menu items' });
@@ -166,7 +166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/menu-items/:id', async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const menuItem = await storage.getMenuItem(id);
+      const menuItem = await getStorage().getMenuItem(id);
       if (!menuItem) {
         return res.status(404).json({ success: false, error: 'Menu item not found' });
       }
@@ -178,7 +178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/menu-items/featured', async (req, res) => {
     try {
-      const menuItems = await storage.getMenuItems();
+      const menuItems = await getStorage().getMenuItems();
       const featuredItems = menuItems.slice(0, 6); // Return first 6 items as featured
       res.json({ success: true, data: featuredItems });
     } catch (error) {
@@ -188,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/menu-items/popular', async (req, res) => {
     try {
-      const menuItems = await storage.getMenuItems();
+      const menuItems = await getStorage().getMenuItems();
       const popularItems = menuItems.slice(0, 8); // Return first 8 items as popular
       res.json({ success: true, data: popularItems });
     } catch (error) {
@@ -199,7 +199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/menu-items', authenticateToken, async (req: any, res) => {
     try {
       const menuItemData = insertMenuItemSchema.parse(req.body);
-      const menuItem = await storage.createMenuItem(menuItemData);
+      const menuItem = await getStorage().createMenuItem(menuItemData);
       res.json({ success: true, data: menuItem });
     } catch (error) {
       res.status(400).json({ success: false, error: 'Failed to create menu item' });
@@ -210,7 +210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/orders', authenticateToken, async (req: any, res) => {
     try {
       const status = req.query.status as string;
-      const orders = await storage.getOrders(req.user.id, status);
+      const orders = await getStorage().getOrders(req.user.id, status);
       res.json({ success: true, data: { data: orders } });
     } catch (error) {
       res.status(500).json({ success: false, error: 'Failed to fetch orders' });
@@ -220,7 +220,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/orders/:id', authenticateToken, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const order = await storage.getOrder(id);
+      const order = await getStorage().getOrder(id);
       if (!order || order.userId !== req.user.id) {
         return res.status(404).json({ success: false, error: 'Order not found' });
       }
@@ -239,7 +239,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const validatedData = insertOrderSchema.parse(orderData);
-      const order = await storage.createOrder(validatedData);
+      const order = await getStorage().createOrder(validatedData);
       res.json({ success: true, data: order });
     } catch (error) {
       res.status(400).json({ success: false, error: 'Failed to create order' });
@@ -249,12 +249,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/orders/:id/cancel', authenticateToken, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const order = await storage.getOrder(id);
+      const order = await getStorage().getOrder(id);
       if (!order || order.userId !== req.user.id) {
         return res.status(404).json({ success: false, error: 'Order not found' });
       }
       
-      const updatedOrder = await storage.updateOrder(id, { status: 'cancelled' });
+      const updatedOrder = await getStorage().updateOrder(id, { status: 'cancelled' });
       res.json({ success: true, data: updatedOrder });
     } catch (error) {
       res.status(400).json({ success: false, error: 'Failed to cancel order' });
@@ -264,7 +264,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Reservations routes
   app.get('/api/reservations', authenticateToken, async (req: any, res) => {
     try {
-      const reservations = await storage.getReservations(req.user.id);
+      const reservations = await getStorage().getReservations(req.user.id);
       res.json({ success: true, data: { data: reservations } });
     } catch (error) {
       res.status(500).json({ success: false, error: 'Failed to fetch reservations' });
@@ -274,7 +274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/reservations/:id', authenticateToken, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const reservation = await storage.getReservation(id);
+      const reservation = await getStorage().getReservation(id);
       if (!reservation || reservation.userId !== req.user.id) {
         return res.status(404).json({ success: false, error: 'Reservation not found' });
       }
@@ -292,7 +292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const validatedData = insertReservationSchema.parse(reservationData);
-      const reservation = await storage.createReservation(validatedData);
+      const reservation = await getStorage().createReservation(validatedData);
       res.json({ success: true, data: reservation });
     } catch (error) {
       res.status(400).json({ success: false, error: 'Failed to create reservation' });
@@ -302,12 +302,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/reservations/:id/cancel', authenticateToken, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const reservation = await storage.getReservation(id);
+      const reservation = await getStorage().getReservation(id);
       if (!reservation || reservation.userId !== req.user.id) {
         return res.status(404).json({ success: false, error: 'Reservation not found' });
       }
       
-      const updatedReservation = await storage.updateReservation(id, { status: 'cancelled' });
+      const updatedReservation = await getStorage().updateReservation(id, { status: 'cancelled' });
       res.json({ success: true, data: updatedReservation });
     } catch (error) {
       res.status(400).json({ success: false, error: 'Failed to cancel reservation' });
@@ -332,7 +332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Chats routes
   app.get('/api/chats', authenticateToken, async (req: any, res) => {
     try {
-      const chats = await storage.getChats(req.user.id);
+      const chats = await getStorage().getChats(req.user.id);
       res.json({ success: true, data: chats });
     } catch (error) {
       res.status(500).json({ success: false, error: 'Failed to fetch chats' });
@@ -342,7 +342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/chats/:id', authenticateToken, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const chat = await storage.getChat(id);
+      const chat = await getStorage().getChat(id);
       if (!chat) {
         return res.status(404).json({ success: false, error: 'Chat not found' });
       }
@@ -355,7 +355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/chats', authenticateToken, async (req: any, res) => {
     try {
       const chatData = insertChatSchema.parse(req.body);
-      const chat = await storage.createChat(chatData);
+      const chat = await getStorage().createChat(chatData);
       res.json({ success: true, data: chat });
     } catch (error) {
       res.status(400).json({ success: false, error: 'Failed to create chat' });
@@ -366,7 +366,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/chats/:chatId/messages', authenticateToken, async (req: any, res) => {
     try {
       const chatId = parseInt(req.params.chatId);
-      const messages = await storage.getMessages(chatId);
+      const messages = await getStorage().getMessages(chatId);
       res.json({ success: true, data: messages });
     } catch (error) {
       res.status(500).json({ success: false, error: 'Failed to fetch messages' });
@@ -383,7 +383,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const validatedData = insertMessageSchema.parse(messageData);
-      const message = await storage.createMessage(validatedData);
+      const message = await getStorage().createMessage(validatedData);
       res.json({ success: true, data: message });
     } catch (error) {
       res.status(400).json({ success: false, error: 'Failed to send message' });
@@ -413,7 +413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/users/profile', authenticateToken, async (req: any, res) => {
     try {
       const updates = req.body;
-      const updatedUser = await storage.updateUser(req.user.id, updates);
+      const updatedUser = await getStorage().updateUser(req.user.id, updates);
       if (!updatedUser) {
         return res.status(404).json({ success: false, error: 'User not found' });
       }

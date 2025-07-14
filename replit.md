@@ -22,8 +22,9 @@ Preferred communication style: Simple, everyday language.
 
 ### Backend Architecture
 - **Runtime**: Node.js with Express.js framework
-- **Database**: PostgreSQL with Drizzle ORM
-- **Database Provider**: Neon serverless PostgreSQL
+- **Database**: MongoDB with Mongoose ODM (auto-fallback to in-memory storage)
+- **Database Provider**: MongoDB Atlas or local MongoDB instance
+- **Storage Strategy**: Dynamic storage selector (MongoDB → in-memory fallback)
 - **Authentication**: JWT-based authentication with session management
 - **Real-time Features**: Socket.IO for chat and live updates
 - **API Design**: RESTful endpoints with `/api` prefix
@@ -150,3 +151,31 @@ Preferred communication style: Simple, everyday language.
 - **Performance**: Lazy loading, code splitting, and optimized builds
 
 The application follows modern web development best practices with TypeScript for type safety, component-driven architecture, and real-time features for enhanced user experience.
+
+### MongoDB Migration & Storage Strategy
+
+#### Current Implementation
+- **Dynamic Storage Selector**: Automatically chooses MongoDB or in-memory storage based on configuration
+- **Graceful Fallback**: Falls back to in-memory storage if MongoDB connection fails
+- **Production Ready**: MongoDB implementation with optimized schemas and indexes for 1M+ users
+- **Development Friendly**: Works immediately without external dependencies
+
+#### MongoDB Setup
+To enable MongoDB storage:
+1. Set `MONGODB_URI` environment variable in Replit Secrets
+2. Server automatically detects and connects to MongoDB
+3. Uses optimized schemas with compound indexes for chat scalability
+4. Supports both MongoDB Atlas and local MongoDB instances
+
+#### Storage Features
+- **Chat Optimization**: Efficient message retrieval with pagination and indexing
+- **User Management**: Comprehensive user profiles with online status tracking
+- **Real-time Support**: Socket.IO integration for live chat features
+- **Scalability**: Designed for 1M+ users with proper indexing strategy
+
+#### Files Structure
+- `server/storage-selector.ts`: Dynamic storage selection logic
+- `server/mongodb.ts`: MongoDB connection and schemas
+- `server/mongodb-storage.ts`: MongoDB implementation of storage interface
+- `server/storage.ts`: In-memory storage fallback
+- `MONGODB_SETUP.md`: Detailed setup and configuration guide

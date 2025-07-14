@@ -5,8 +5,14 @@ const COMPANY_DETAILS = 'COMPANY_DETAILS';
 const LANGUAGE_DETAILS = 'LANGUAGE_DETAILS';
 
 export const getToken = (): string | null => {
-  const json = localStorage.getItem("token");
-  return json ? JSON.parse(json) : null;
+  try {
+    const json = localStorage.getItem("token");
+    if (!json || json === 'undefined') return null;
+    return JSON.parse(json);
+  } catch (err) {
+    console.error('Error parsing token from localStorage:', err);
+    return null;
+  }
 };
 
 export const setToken = (data: any) => {
@@ -42,8 +48,14 @@ export const setCompanyDetails = (data: any) => {
 };
 
 export const getCompanyDetails = (): any | null => {
-  const json = localStorage.getItem(COMPANY_DETAILS);
-  return json ? JSON.parse(json) : null;
+  try {
+    const json = localStorage.getItem(COMPANY_DETAILS);
+    if (!json || json === 'undefined') return null;
+    return JSON.parse(json);
+  } catch (err) {
+    console.error('Error parsing company details from localStorage:', err);
+    return null;
+  }
 };
 
 export const removeCompanyDetails = () => {
