@@ -12,19 +12,12 @@ import Orders from './pages/Orders';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Cart from './pages/Cart';
-import { getToken } from './service/asyncstorage';
+import { getToken, setUserDetails } from './service/asyncstorage';
 import { socket } from './lib/socket';
+import { api } from './lib/api';
 
 function App() {
   const token = getToken();
-
-  useEffect(() => {
-    if (token ) {
-      console.log("🔌 Calling socket.connect");
-      socket.connect(token);
-    }
-  }, [token]);
-
   return (
     <AuthProvider>
       <CartProvider>

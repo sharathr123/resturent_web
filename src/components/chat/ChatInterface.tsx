@@ -44,18 +44,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedChat, onBack }) =
   const user = getUserDetails();
 
   useEffect(() => {
-    console.log("Socket connected?", socket.isConnected);
-  }, []);
-
-  useEffect(() => {
     if (selectedChat) {
       fetchMessages();
-      socket.joinChat(selectedChat._id!);
+      // Track that user is viewing this chat
+      socket.enterChat(selectedChat._id!);
       markMessagesAsRead();
     }
 
     return () => {
       if (selectedChat) {
+        // Track that user left this chat
         socket.leaveChat(selectedChat._id!);
       }
       if (typingTimeoutRef.current) {
@@ -68,25 +66,36 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedChat, onBack }) =
     scrollToBottom();
   }, [messages]);
 
+  // Enhanced socket event handlers
   useEffect(() => {
     const handleNewMessage = (data: any) => {
       if (data.chatId === selectedChat?._id) {
         setMessages(prev => [...prev, data.message]);
-        markMessageAsDelivered(data.message._id);
+        // Auto-mark as delivered and seen since user is viewing this chat
+        socket.markMessageDelivered(data.message._id, data.chatId);
+        socket.markMessageSeen(data.message._id, data.chatId);
         scrollToBottom();
       }
     };
 
+    const handleUserStatusChange = (data: { userId: string; isOnline: boolean; lastSeen: string }) => {
+      // Update online status in real-time
+      if (selectedChat?.type === 'direct') {
+        const otherUser = selectedChat.participantDetails?.find(p => p._id === data.userId);
+        if (otherUser) {
+          // Update chat's online status
+          // This would need to be handled by parent component or context
+        }
+      }
+    };
+
     const handleTyping = (data: { chatId: string; userId: string; userName: string; isTyping: boolean }) => {
-      const currentUserId = user?.id?.toString();
-      const typingUserId = data.userId?.toString();
-      console.log(currentUserId, typingUserId);
-      if (data.chatId === selectedChat?._id && typingUserId !== currentUserId) {
+      if (data.chatId === selectedChat?._id && data.userId !== user?.id) {
         setTypingUsers(prev => {
           if (data.isTyping) {
-            return [...prev.filter(id => id !== typingUserId), typingUserId];
+            return [...prev.filter(id => id !== data.userId), data.userId];
           } else {
-            return prev.filter(id => id !== typingUserId);
+            return prev.filter(id => id !== data.userId);
           }
         });
       }
@@ -102,14 +111,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedChat, onBack }) =
       }
     };
 
+    const handleMessageSent = (data: any) => {
+      if (data.chatId === selectedChat?._id) {
+        setMessages(prev => [...prev, data.message]);
+        scrollToBottom();
+      }
+    };
+
     socket.on('newMessage', handleNewMessage);
     socket.on('userTyping', handleTyping);
     socket.on('messageStatusUpdate', handleMessageStatusUpdate);
+    socket.on('messageSent', handleMessageSent);
+    socket.on('userStatusChange', handleUserStatusChange);
 
     return () => {
       socket.off('newMessage', handleNewMessage);
       socket.off('userTyping', handleTyping);
       socket.off('messageStatusUpdate', handleMessageStatusUpdate);
+      socket.off('messageSent', handleMessageSent);
+      socket.off('userStatusChange', handleUserStatusChange);
     };
   }, [selectedChat, user]);
 
@@ -136,20 +156,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedChat, onBack }) =
     // Mark all unread messages as seen
     messages.forEach(message => {
       if (message.senderId !== user.id && message.status !== 'seen') {
-        socket.emit('messageSeen', {
-          messageId: message._id,
-          chatId: selectedChat._id
-        });
+        socket.markMessageSeen(message._id!, selectedChat._id!);
       }
-    });
-  };
-
-  const markMessageAsDelivered = (messageId: string) => {
-    if (!selectedChat) return;
-
-    socket.emit('messageDelivered', {
-      messageId,
-      chatId: selectedChat._id
     });
   };
 
@@ -163,34 +171,48 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedChat, onBack }) =
     // Stop typing indicator
     if (isTyping) {
       setIsTyping(false);
-      socket.emit('typing', { chatId: selectedChat._id, isTyping: false });
+      socket.sendTyping(selectedChat._id!, false);
     }
 
     try {
-      let response;
-
       if (selectedFile) {
-        // Upload file message
+        // Upload file first, then send message via socket
         const formData = new FormData();
         formData.append('file', selectedFile);
-        if (messageContent) {
-          formData.append('content', messageContent);
-        }
-        formData.append('messageType', selectedFile.type.startsWith('image/') ? 'image' : 'file');
 
         setUploading(true);
-        response = await api.sendMessageWithFile(selectedChat._id!, formData);
+        const uploadResponse = await fetch(`http://localhost:5002/api/chats/${selectedChat._id}/upload`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: formData,
+        });
+
+        const uploadResult = await uploadResponse.json();
+
+        if (uploadResult.success) {
+          // Send message via socket with file info
+          socket.sendMessage({
+            chatId: selectedChat._id!,
+            content: messageContent,
+            messageType: selectedFile.type.startsWith('image/') ? 'image' : 'file',
+            fileUrl: uploadResult.fileUrl,
+            fileName: selectedFile.name,
+            fileSize: selectedFile.size
+          });
+        }
+
         setSelectedFile(null);
         setPreviewUrl(null);
         setUploading(false);
       } else {
-        // Send text message
-        response = await api.sendMessage(selectedChat._id!, messageContent);
-      }
-
-      if (response.success && response.data) {
-        setMessages(prev => [...prev, response.data!]);
-        scrollToBottom();
+        // Send text message via socket
+        socket.sendMessage({
+          chatId: selectedChat._id!,
+          content: messageContent,
+          messageType: 'text'
+        });
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -204,7 +226,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedChat, onBack }) =
 
     if (!isTyping && value.length > 0) {
       setIsTyping(true);
-      socket.emit('typing', { chatId: selectedChat?._id, isTyping: true });
+      socket.sendTyping(selectedChat?._id!, true);
     }
 
     // Clear existing timeout
@@ -215,13 +237,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedChat, onBack }) =
     // Set new timeout to stop typing indicator
     typingTimeoutRef.current = setTimeout(() => {
       setIsTyping(false);
-      socket.emit('typing', { chatId: selectedChat?._id, isTyping: false });
+      socket.sendTyping(selectedChat?._id!, false);
     }, 1000);
 
     // Stop typing if message is empty
     if (value.length === 0 && isTyping) {
       setIsTyping(false);
-      socket.emit('typing', { chatId: selectedChat?._id, isTyping: false });
+      socket.sendTyping(selectedChat?._id!, false);
     }
   };
 
@@ -311,14 +333,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedChat, onBack }) =
 
           <div
             className={`px-4 py-2 rounded-lg ${isOwnMessage
-              ? 'bg-orange-600 text-white'
-              : 'bg-gray-100 text-gray-900'
+                ? 'bg-orange-600 text-white'
+                : 'bg-gray-100 text-gray-900'
               }`}
           >
             {message.messageType === 'image' && message.fileUrl && (
               <div className="mb-2">
                 <img
-                  src={`http://localhost:5000${message.fileUrl}`}
+                  src={`http://localhost:5002${message.fileUrl}`}
                   alt="Shared image"
                   className="max-w-full h-auto rounded-lg"
                   style={{ maxHeight: '200px' }}
@@ -330,7 +352,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedChat, onBack }) =
               <div className="flex items-center space-x-2 mb-2">
                 <Paperclip size={16} />
                 <a
-                  href={`http://localhost:5000${message.fileUrl}`}
+                  href={`http://localhost:5002${message.fileUrl}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline"
@@ -365,7 +387,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedChat, onBack }) =
       </div>
     );
   }
-  { console.log(typingUsers, ' jkhghfgdfx') }
+
   return (
     <div className="flex-1 flex flex-col bg-white h-full">
       {/* Chat Header */}
@@ -395,20 +417,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedChat, onBack }) =
                 {selectedChat.name || 'Unknown'}
               </h3>
               <p className="text-sm text-gray-500">
-                {/* {typingUsers.length > 0 
-                  ? 'Typing...' 
-                  : selectedChat.type === 'direct' 
-                    ? (selectedChat.isOnline ? 'Online' : `Last seen ${formatTime(selectedChat.lastSeen)}`)
-                    : `${selectedChat.participants?.length || 0} members`
-                } */}
                 {typingUsers.length > 0
                   ? 'Typing...'
                   : selectedChat.type === 'direct'
-                    ? (selectedChat.isOnline
-                      ? 'Online'
-                      : selectedChat.lastSeen
-                        ? `Last seen ${formatTime(selectedChat.lastSeen)}`
-                        : 'Last seen unknown')
+                    ? (selectedChat.isOnline ? 'Online' : `Last seen ${formatTime(selectedChat?.lastSeen)}`)
                     : `${selectedChat.participants?.length || 0} members`
                 }
               </p>

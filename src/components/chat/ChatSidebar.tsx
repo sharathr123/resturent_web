@@ -41,6 +41,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
       socket.off('newChat');
       socket.off('userStatusChange');
       socket.off('messagesRead');
+      socket.off('chatUpdated');
     };
   }, []);
 
@@ -61,18 +62,9 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
       updateChatReadStatus(data);
     });
 
-    // Listen for chat presence updates
-        socket.on('chatPresenceUpdate', (data: any) => {
-      updateChatPresence(data);
+    socket.on('chatUpdated', (data: any) => {
+      updateChatUnreadCount(data);
     });
-
-  };
-
-   // Add function to handle chat presence updates
-  const updateChatPresence = (data: any) => {
-    // This can be used to show if other users are currently viewing the chat
-    // For now, we'll just log it
-    console.log('Chat presence update:', data);
   };
 
   const fetchChats = async () => {
@@ -95,7 +87,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
           return {
             ...chat,
             lastMessage: data.chat.lastMessage,
-            unreadCount: chat._id === selectedChat?._id ? 0 : (chat.unreadCount || 0) + 1
+            unreadCount: data.chat.unreadCount || chat.unreadCount || 0
           };
         }
         return chat;
@@ -114,7 +106,6 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   const updateUserStatus = (data: any) => {
     setChats(prev => prev.map(chat => {
       if (chat.type === 'direct') {
-        // Find if this chat involves the user whose status changed
         const otherUser = chat.participantDetails?.find(p => p._id === data.userId);
         if (otherUser) {
           return {
@@ -134,6 +125,18 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
         return {
           ...chat,
           unreadCount: 0
+        };
+      }
+      return chat;
+    }));
+  };
+
+  const updateChatUnreadCount = (data: any) => {
+    setChats(prev => prev.map(chat => {
+      if (chat._id === data.chatId) {
+        return {
+          ...chat,
+          unreadCount: data.unreadCount
         };
       }
       return chat;
@@ -314,12 +317,11 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                                 {formatTime(chat.lastMessage.timestamp)}
                               </span>
                             )}
-                            {(chat.unreadCount ?? 0) > 0 && (
+                            {chat.unreadCount && chat.unreadCount > 0 && (
                               <Badge variant="error" size="sm">
-                                {(chat.unreadCount ?? 0) > 99 ? '99+' : chat.unreadCount}
+                                {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
                               </Badge>
                             )}
-
                           </div>
                         </div>
 

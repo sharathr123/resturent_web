@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '../types';
 import { socket } from '../lib/socket';
 import { api } from '../lib/api';
+import { getToken } from '../service/asyncstorage';
 
 interface AuthContextType {
   user: User | null;
@@ -27,20 +28,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Check for existing token and get user data
-    // const token = localStorage.getItem('token');
-    // if (token) {
-    //   api.getMe().then((response) => {
-    //     if (response.success && response.data) {
-    //       setUser(response.data);
-    //       socket.connect(token);
-    //     } else {
-    //       localStorage.removeItem('token');
-    //     }
-    //     setLoading(false);
-    //   });
-    // } else {
-    //   setLoading(false);
-    // }
+    const token = getToken();
+    if (token) {
+      api.getMe().then((response) => {
+        if (response.success && response.data) {
+          setUser(response.data);
+          socket.connect(token);
+        } else {
+          localStorage.removeItem('token');
+        }
+        setLoading(false);
+      });
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   const login = async (email: string, password: string) => {

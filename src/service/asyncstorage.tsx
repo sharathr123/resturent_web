@@ -22,9 +22,16 @@ export const setUserDetails = (data: any) => {
 };
 
 export const getUserDetails = (): any | null => {
-  const json = localStorage.getItem(USER_DETAILS);
-  return json ? JSON.parse(json) : null;
+  try {
+    const user = localStorage.getItem(USER_DETAILS);
+    if (!user || user === 'undefined') return null; // Prevent parsing invalid JSON
+    return JSON.parse(user);
+  } catch (err) {
+    console.error('Error parsing user from localStorage:', err);
+    return null;
+  }
 };
+
 
 export const removeUserDetails = () => {
   localStorage.removeItem(USER_DETAILS);

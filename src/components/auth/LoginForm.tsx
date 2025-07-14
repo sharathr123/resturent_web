@@ -10,6 +10,7 @@ import { handleApiError } from '../../service/servicehelper';
 import { loginUser } from '../../service/service';
 import { LoginApiUrl } from '../../service/ApiEndPoints';
 import { setToken, setUserDetails } from '../../service/asyncstorage';
+import { socket } from '../../lib/socket';
 
 interface LoginFormData {
   email: string;
@@ -20,7 +21,6 @@ const LoginForm: React.FC = () => {
   const [formData, setFormData] = useState<LoginFormData>({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = async () => {
@@ -33,6 +33,7 @@ const LoginForm: React.FC = () => {
       const response = await loginUser(LoginApiUrl, formData);
       setToken(response.token);
       setUserDetails(response.data);
+      socket.connect(response.token);
       toast.success('Login successful');
       navigate('/');
     } catch (error) {

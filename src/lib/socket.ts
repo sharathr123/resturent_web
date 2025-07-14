@@ -17,10 +17,6 @@ class SocketManager {
       reconnectionDelay: 1000,
     });
 
-    this.socket.on("connect_error", (error) => {
-      console.error("Socket connection error:", error);
-    });
-
     this.socket.on("connect", () => {
       console.log("Connected to socket server");
       this.reconnectAttempts = 0;
@@ -77,6 +73,10 @@ class SocketManager {
       this.emitToListeners("userStatusChange", data);
     });
 
+    this.socket.on("chatUpdated", (data) => {
+      this.emitToListeners("chatUpdated", data);
+    });
+
     this.socket.on("orderUpdate", (data) => {
       this.emitToListeners("orderUpdate", data);
     });
@@ -89,51 +89,43 @@ class SocketManager {
       this.reconnectAttempts = 0;
     }
   }
-  
-  // kjhgfdxfcgvhjklkjhgvc
-
-
-    // Add chat presence methods
-  joinChatRoom(chatId: string) {
-    this.socket?.emit("joinChatRoom", chatId);
-  }
-
-  leaveChatRoom(chatId: string) {
-    this.socket?.emit("leaveChatRoom", chatId);
-  }
-
-  // Track when user opens/closes chat interface
-  setUserChatPresence(chatId: string, isActive: boolean) {
-    this.socket?.emit("userChatPresence", { chatId, isActive });
-  }
-
-  // newly added
 
   // Chat methods
-  joinChat(chatId: string) {
-    this.socket?.emit("joinChat", chatId);
-  }
-
-  leaveChat(chatId: string) {
-    this.socket?.emit("leaveChat", chatId);
-  }
-
-  sendMessage(chatId: string, content: string) {
-    this.socket?.emit("sendMessage", { chatId, content });
-  }
-
-  // Socket emit method - sends events to server
   emit(event: string, data: any) {
     this.socket?.emit(event, data);
   }
 
+  // Chat-specific methods
+  enterChat(chatId: string) {
+    this.emit("enterChat", chatId);
+  }
+
+  leaveChat(chatId: string) {
+    this.emit("leaveChat", chatId);
+  }
+
+  sendTyping(chatId: string, isTyping: boolean) {
+    this.emit("typing", { chatId, isTyping });
+  }
+
+  sendMessage(data: {
+    chatId: string;
+    content: string;
+    messageType?: string;
+    fileUrl?: string;
+    fileName?: string;
+    fileSize?: number;
+  }) {
+    // console.log('sending message', data);
+    this.emit("sendMessage", data);
+  }
   // Message status methods
   markMessageDelivered(messageId: string, chatId: string) {
-    this.socket?.emit("messageDelivered", { messageId, chatId });
+    this.emit("messageDelivered", { messageId, chatId });
   }
 
   markMessageSeen(messageId: string, chatId: string) {
-    this.socket?.emit("messageSeen", { messageId, chatId });
+    this.emit("messageSeen", { messageId, chatId });
   }
 
   // Order tracking
@@ -168,7 +160,7 @@ class SocketManager {
     }
   }
 
-  // Private method to emit to local listeners (renamed to avoid conflict)
+  // Private method to emit to local listeners
   private emitToListeners(event: string, data: any) {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {

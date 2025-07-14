@@ -16,8 +16,6 @@ const Header: React.FC = () => {
   const { state: cartState } = useCart();
   const location = useLocation();
 
-  
-
   const navigation = [
     { name: 'Home', href: '/' },
     { name: 'Menu', href: '/menu' },
@@ -62,8 +60,8 @@ const Header: React.FC = () => {
                 <Link
                   to={item.href}
                   className={`font-medium transition-colors ${isActive(item.href)
-                      ? 'text-orange-600'
-                      : 'text-gray-600 hover:text-orange-600'
+                    ? 'text-orange-600'
+                    : 'text-gray-600 hover:text-orange-600'
                     }`}
                 >
                   {item.name}
@@ -190,8 +188,8 @@ const Header: React.FC = () => {
                   key={item.name}
                   to={item.href}
                   className={`block font-medium transition-colors ${isActive(item.href)
-                      ? 'text-orange-600'
-                      : 'text-gray-600 hover:text-orange-600'
+                    ? 'text-orange-600'
+                    : 'text-gray-600 hover:text-orange-600'
                     }`}
                   onClick={() => setIsMenuOpen(false)}
                 >
